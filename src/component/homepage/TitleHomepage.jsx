@@ -32,8 +32,8 @@ const TitleHomepage = () => {
             <p className="text-8xl text-center">MOBILE LEGENDS</p>
           </div>
           <div className="h-14 w-full flex items-center justify-center">
-            <div className="flex items-center justify-center w-[265px] h-[70px] border-white border border-opacity-50">
-              <button className="w-[250px] h-[55px] bg-red-500 text-xl">
+            <div className="flex items-center justify-center w-[265px] h-[70px] border-white border border-opacity-50 ">
+              <button className="w-[250px] h-[55px] bg-red-500 text-xl hover:shadow-[inset_265px_0_0_0] hover:shadow-[#0f1923] duration-[600ms,700ms] transition-[color,box-shadow]">
                 Try For Free
               </button>
             </div>

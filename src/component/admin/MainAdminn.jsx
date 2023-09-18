@@ -1,37 +1,80 @@
 import React, { useContext, useRef, useState, useEffect } from "react";
+import { storage } from "../../firebase-config";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import AuthContext from "../context/AuthContext";
 import HoverContext from "../context/HoverContext";
 import axios from "axios";
+import {
+  ButtonOption,
+  ButtonDelete,
+  ButtonNewSkill
+} from "./tableData/ButtonOption";
+import { NotifyAction } from "./NotifyAction";
 
 const MainAdmin = () => {
+
   const authContext = useContext(AuthContext);
   const hoverContext = useContext(HoverContext);
-  const [allHeroes, setAllHeroes] = useState([]);
-  const [allHeroesToEdit, setAllHeroesToEdit] = useState(null);
-  const [skills, setSkills] = useState([]);
-  const [skillCount, setSkillCount] = useState(0);
-  const [isloading, setIsLoading] = useState(false);
+
+  // const [allHeroes, setAllHeroes] = useState([]);
+  // const [allHeroesToEdit, setAllHeroesToEdit] = useState(null);
+  // const [skills, setSkills] = useState([]);
+  // const [skillCount, setSkillCount] = useState(0);
+  // const [isloading, setIsLoading] = useState(false);
+  // const [imageName, setImageName] = useState();
+
+  const [isDelete, setIsDelete] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [isCreateNewExpanded, setIsCreateNewExpanded] = useState(false);
+  // const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  // const [textSuccessMessage, setTextSuccessMessage] = useState("");
+  const [imageUpload, setImageUpload] = useState();
+  const [changeFileMode, setChangeFileMode] = useState(false);
+  const [heroImageRef, setHeroImageRef] = useState();
 
   useEffect(() => {
+    const isLoggedIn = localStorage.getItem("isLoggedIn");
+    if (isLoggedIn === "true") {
+      authContext.setIsLoggedIn(true);
+    } else {
+      authContext.setIsLoggedIn(false);
+    }
     getHeroes();
   }, []);
 
-  const onClickCreateNew = () => {
-    setIsCreateNewExpanded(!isCreateNewExpanded);
-    setEditMode(false);
+  const onchangeFileMode = () => {
+    setChangeFileMode(true);
   };
+
+  const onUploadImage = event => {
+    setImageUpload(event.target.files[0]);
+    setImageName("images/hero/" + event.target.files[0].name);
+  };
+
+  const UploadImage = () => {
+    if (imageUpload == null) return;
+    const imageRef = ref(storage, `images/hero/${imageUpload.name}`);
+    uploadBytes(imageRef, imageUpload).then(() => alert("upload success")).then(()=>{
+      getDownloadURL(imageRef)
+    }).then((url)=>{
+      set
+    })
+  };
+
+  // const onClickCreateNew = () => {
+  //   setIsCreateNewExpanded(!isCreateNewExpanded);
+  //   setEditMode(false);
+  // };
   const apiAddress =
     "https://mlbb-api-6d660-default-rtdb.asia-southeast1.firebasedatabase.app/hero.json";
   let heroNameRef = useRef();
   let heroRolesRef = useRef();
   let heroBiographyRef = useRef();
-  let heroImageRef = useRef();
   let skillNameRef = useRef([]);
   let skillDescriptionRef = useRef([]);
   let skillImageRef = useRef([]);
 
+  //perlu Context
   const getHeroes = async () => {
     setIsLoading(true);
     try {
@@ -47,6 +90,7 @@ const MainAdmin = () => {
       console.log(error);
     }
   };
+
   const addNewSkill = () => {
     const newSkill = {
       skillName: "",
@@ -56,6 +100,54 @@ const MainAdmin = () => {
     setSkills(prevSkills => [...prevSkills, newSkill]);
     setSkillCount(prevCount => prevCount + 1);
   };
+
+  const removeSkill = () => {
+    if (skills.length === 0) {
+      return; // Jika tidak ada skill yang tersedia, keluar dari fungsi
+    }
+
+    const updatedSkills = [...skills]; // Membuat salinan array skills
+    updatedSkills.pop(); // Menghapus skill terakhir dari array
+
+    setSkills(updatedSkills); // Mengupdate state skills dengan array skill yang telah diperbarui
+    setSkillCount(prevCount => prevCount - 1); // Mengupdate skill count dengan mengurangi 1
+  };
+
+  const onDeleteHero = async (event, hero) => {
+    if (isDelete === true) {
+      try {
+        await axios.delete(
+          "https://mlbb-api-6d660-default-rtdb.asia-southeast1.firebasedatabase.app/hero/" +
+            hero.id +
+            ".json"
+        );
+
+        await getHeroes(); // Menunggu hingga getHeroes() selesai
+
+        setShowSuccessMessage(true);
+        setTextSuccessMessage("Delete Success");
+        setTimeout(() => {
+          setShowSuccessMessage(false);
+        }, 3000);
+
+        setIsDelete(false);
+      } catch (error) {
+        console.log(error);
+      }
+    } else {
+      // Do something else
+    }
+  };
+
+  const onClickClose = () => {
+    setEditMode(false);
+    setIsCreateNewExpanded(false);
+  };
+
+  const onUnDelete = () => {
+    setIsDelete(false);
+  };
+
   const onSubmitHero = async event => {
     event.preventDefault();
     const heroSkills = skills.map((_, index) => ({
@@ -67,16 +159,24 @@ const MainAdmin = () => {
       heroName: heroNameRef.current.value,
       heroRoles: heroRolesRef.current.value,
       heroBiography: heroBiographyRef.current.value,
-      heroImage: heroImageRef.current.value,
+      heroImage: imageName,
       skills: heroSkills
     };
     if (!editMode) {
       try {
-        await axios.post(apiAddress, hero);
+        await axios.post(apiAddress, hero).then(() => {
+          UploadImage();
+          setShowSuccessMessage(true);
+          setTextSuccessMessage("Create Success");
+          setTimeout(() => {
+            setShowSuccessMessage(false);
+          }, 3000);
+        });
+
         heroNameRef.current.value = "";
         heroRolesRef.current.value = "";
         heroBiographyRef.current.value = "";
-        heroImageRef.current.value = "";
+        // heroImageRef.current.value = "";
         skillNameRef.current.value = "";
         skillDescriptionRef.current.value = "";
         skillImageRef.current.value = "";
@@ -93,7 +193,14 @@ const MainAdmin = () => {
               ".json",
             hero
           )
-          .then(console.log("update Success"));
+          .then(() => {
+            UploadImage();
+            setShowSuccessMessage(true);
+            setTextSuccessMessage("Update Success");
+            setTimeout(() => {
+              setShowSuccessMessage(false);
+            }, 3000);
+          });
         // await getHeroes()
         setSkillCount(0);
       } catch (error) {
@@ -103,13 +210,18 @@ const MainAdmin = () => {
     }
     getHeroes();
   };
-  const onClickEdit = (event, hero) => {
-    setEditMode(true);
-    setAllHeroesToEdit(hero);
-    setSkills(hero.skills || []);
-    setSkillCount(hero.skills ? hero.skills.length : 0);
+  const onClickDelete = (event, hero) => {
+    setIsDelete(true);
   };
-  authContext.isLoggedin = true;
+  // const onClickEdit = (event, hero) => {
+  //   setEditMode(true);
+  //   setChangeFileMode(false);
+  //   setAllHeroesToEdit(hero);
+  //   setSkills(hero.skills || []);
+  //   setSkillCount(hero.skills ? hero.skills.length : 0);
+  // };
+
+  // authContext.isLoggedin = true;
   if (authContext.isLoggedin) {
     return (
       <div
@@ -145,6 +257,10 @@ const MainAdmin = () => {
                 </div>
                 <img src="/img/redLogo.png" className="mt-5" />
               </div>
+              <NotifyAction
+                showSuccessMessage={showSuccessMessage}
+                text={textSuccessMessage}
+              />
 
               <form
                 className="flex-col w-2/3 h-full bg-white border-2 border-[#0f1923] border-l-0 px-8 py-2 flex overflow-x-hidden overflow-y-auto"
@@ -154,8 +270,10 @@ const MainAdmin = () => {
                 <div className="w-full h-full p-2">
                   <div className="w-full h-fit text-4xl flex">
                     <p className="w-1/2"> ADD New HERO </p>
-                    <span className="w-1/2 flex justify-end"
-                    onClick={onClickCreateNew}>
+                    <span
+                      className="w-1/2 flex justify-end"
+                      onClick={onClickClose}
+                    >
                       <img
                         className="bg-[#0f1923] border-2 border-[#0f1923] p-1 rounded-sm cursor-pointer"
                         src="/img/close.png"
@@ -193,23 +311,77 @@ const MainAdmin = () => {
                     ></textarea>
                   </div>
                   <label>Image Url</label>
-                  <div className="w-full mb-2">
-                    <input
-                      className="text-left w-full h-[35px] py-1 px-2 focus:outline-none rounded-sm text-neutral-800 border border-[#0f1923]"
-                      type="text"
-                      ref={heroImageRef}
-                      defaultValue={editMode ? allHeroesToEdit.heroImage : ""}
-                    />
-                  </div>
-                  <div className="w-full h-full">
-                    <div className="flex items-center justify-center w-full h-[60px]">
-                      <button
-                        className="rounded-sm w-full h-[40px] bg-[#0f1923] text-xl text-[#ffffff]"
-                        onClick={addNewSkill}
-                        type="button"
+                  {editMode ? (
+                    !changeFileMode ? (
+                      <div
+                        className="flex w-full items-center h-[35px] focus:outline-none rounded-sm text-neutral-800 border border-[#0f1923]"
+                        type="text"
                       >
-                        + Skill
-                      </button>
+                        <p className="w-5/6 pl-2">
+                          {allHeroesToEdit.heroImage}
+                        </p>
+                        <button
+                          className="w-1/6 bg-red-500 text-white h-full"
+                          onClick={onchangeFileMode}
+                        >
+                          Ganti File
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-full mb-2">
+                        <input
+                          className="relative m-0 block w-full min-w-0 flex-auto rounded-sm border border-solid
+      border-neutral-300 bg-clip-padding px-3 py-[0.32rem] text-base font-normal
+      text-[#0f1923] transition duration-300 ease-in-out file:-mx-3 file:-my-[0.32rem] 
+      file:overflow-hidden file:rounded-none file:border-0 file:border-solid file:border-inherit
+      file:bg-red-500 file:px-3 file:py-[0.32rem] file:text-white file:transition 
+      file:duration-150 file:ease-in-out file:[border-inline-end-width:1px] file:[margin-inline-end:0.75rem]
+      hover:file:bg-[#0f1923] focus:border-primary focus:text-red-500 focus:shadow-te-primary
+      focus:outline-none file:cursor-pointer"
+                          type="file"
+                          onChange={event => onUploadImage(event)}
+                        />
+                      </div>
+                    )
+                  ) : (
+                    <div className="w-full mb-2 ">
+                      <input
+                        className="relative m-0 block w-full min-w-0 flex-auto rounded-sm border border-solid
+      border-neutral-300 bg-clip-padding px-3 py-[0.32rem] text-base font-normal
+      text-[#0f1923] transition duration-300 ease-in-out file:-mx-3 file:-my-[0.32rem] 
+      file:overflow-hidden file:rounded-none file:border-0 file:border-solid file:border-inherit
+      file:bg-red-500 file:px-3 file:py-[0.32rem] file:text-white file:transition 
+      file:duration-150 file:ease-in-out file:[border-inline-end-width:1px] file:[margin-inline-end:0.75rem]
+      hover:file:bg-[#0f1923] focus:border-primary focus:text-red-500 focus:shadow-te-primary
+      focus:outline-none file:cursor-pointer"
+                        type="file"
+                        onChange={event => onUploadImage(event)}
+                      />
+                    </div>
+                  )}
+
+                  <div className="w-full h-full">
+                    <div className="flex gap-5 items-center justify-center w-full h-[60px]">
+                      {skillCount === 0 ? (
+                        <ButtonNewSkill
+                          onClick={addNewSkill}
+                          text="+"
+                          width="100%"
+                        />
+                      ) : (
+                        <>
+                          <ButtonNewSkill
+                            onClick={addNewSkill}
+                            text="+"
+                            width="50%"
+                          />
+                          <ButtonNewSkill
+                            onClick={removeSkill}
+                            text="-"
+                            width="50%"
+                          />
+                        </>
+                      )}
                     </div>
 
                     {/* skills = [{a,b,c},{a,b,c}, ....] */}
@@ -217,7 +389,7 @@ const MainAdmin = () => {
                       <div className="w-full flex mb-3" key={index}>
                         <div className="w-fit">
                           <div className="w-fit">
-                            <label className="">Nama Keterampilan</label>
+                            <label className="">Nama kemampuan</label>
                             <div className="w-full mb-1">
                               <input
                                 className="w-[225px] h-full py-1 px-2 focus:outline-none rounded-sm text-neutral-800 border border-[#0f1923]"
@@ -225,7 +397,8 @@ const MainAdmin = () => {
                                 ref={el => (skillNameRef.current[index] = el)}
                                 defaultValue={
                                   editMode
-                                    ? allHeroesToEdit.skills[index].skillName
+                                    ? allHeroesToEdit.skills[index]
+                                        ?.skillName || ""
                                     : ""
                                 }
                               />
@@ -233,7 +406,7 @@ const MainAdmin = () => {
                           </div>
 
                           <div className="w-fit">
-                            <label className="w-fit">Gambar Keterampilan</label>
+                            <label className="w-fit">Gambar kemampuan</label>
                             <div className="w-full mb-1">
                               <input
                                 className="w-[225px] h-full py-1 px-2 focus:outline-none rounded-sm text-neutral-800 border border-[#0f1923]"
@@ -241,7 +414,8 @@ const MainAdmin = () => {
                                 ref={el => (skillImageRef.current[index] = el)}
                                 defaultValue={
                                   editMode
-                                    ? allHeroesToEdit.skills[index].skillImage
+                                    ? allHeroesToEdit.skills[index]
+                                        ?.skillImage || ""
                                     : ""
                                 }
                               />
@@ -263,7 +437,7 @@ const MainAdmin = () => {
                               defaultValue={
                                 editMode
                                   ? allHeroesToEdit.skills[index]
-                                      .skillDescription
+                                      ?.skillDescription || ""
                                   : ""
                               }
                             ></textarea>
@@ -290,7 +464,7 @@ const MainAdmin = () => {
         {!isloading && (
           <section
             id="data-table"
-            className="bg-[#0f1923] w-full h-fit mt-2 border-2 text-white overflow-x-hidden overflow-y-auto"
+            className="bg-[#0f1923] w-full h-fit mt-2 border-2 text-white overflow-x-hidden overflow-y-auto flex justify-center"
           >
             <table className="w-full">
               <thead className="border-2 bg-red-500 border-[#0f1923] text-[#0f1923] text-xl">
@@ -345,16 +519,20 @@ const MainAdmin = () => {
                         ))}
                       </td>
                       <td className="border-x-2 border-[#343f44]">
-                        <div className="flex justify-center items-center">
-                          <button
-                            className="rounded-sm w-[60px] h-[25px] bg-[#0f1923] text-md text-white border border-red-500"
-                            onClick={event => onClickEdit(event, hero)}
-                          >
-                            Edit
-                          </button>
-                          <button className="rounded-sm w-[60px] h-[25px] bg-red-500 text-md text-white border border-red-500 ml-2">
-                            Delete
-                          </button>
+                        <div className="flex justify-center items-center gap-2">
+                          <ButtonOption
+                            hero={hero}
+                            text="edit"
+                            onClick={onClickEdit}
+                          />
+                          <ButtonOption
+                            hero={hero}
+                            text="delete"
+                            onClick={onClickDelete}
+                            isDelete={isDelete}
+                            onDeleteHero={onDeleteHero}
+                            onUnDelete={onUnDelete}
+                          />
                         </div>
                       </td>
                     </tr>

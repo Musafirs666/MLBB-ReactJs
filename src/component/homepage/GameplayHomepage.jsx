@@ -38,7 +38,7 @@ const GameplayHomepage = () => {
             </p>
           </div>
           <div className="flex items-center justify-center w-[265px] h-[70px] border-gray-900 border border-opacity-30 ml-[-10px] mt-14">
-            <button className="w-[250px] h-[55px] bg-red-500 font-xl">
+            <button className="w-[250px] h-[55px] bg-red-500 text-xl hover:shadow-[inset_265px_0_0_0] hover:shadow-[#0f1923] duration-[600ms,700ms] transition-[color,box-shadow]">
               Learn Game
             </button>
           </div>

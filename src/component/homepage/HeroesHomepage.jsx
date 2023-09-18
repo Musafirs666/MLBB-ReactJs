@@ -34,7 +34,7 @@ const HeroesHomepage = () => {
           </p>
         </div>
         <div className="flex items-center justify-center w-[265px] h-[70px] border-neutral-200 border border-opacity-30 ml-[-10px] mt-14">
-          <button className="w-[250px] h-[55px] bg-neutral-200 font-lg">
+          <button className="w-[250px] h-[55px] bg-neutral-200 text-xl text hover:shadow-[inset_265px_0_0_0] hover:shadow-[#0f1923] hover:text-white duration-[600ms,700ms] transition-[color,box-shadow]">
             See All Heroes
           </button>
         </div>

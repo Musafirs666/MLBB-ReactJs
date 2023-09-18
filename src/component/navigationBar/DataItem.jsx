@@ -5,8 +5,8 @@ const DataItem = [
     title: "Game Information",
     dropdownItems: [
       { path: "./heroes", label: "Heroes" },
-      { path: "./roles", label: "Roles" },
-      { path: "./emblem", label: "Emblem" }
+      { path: "./mode", label: "Game Mode" },
+      { path: "./Items", label: "Items" }
     ]
   },
   {

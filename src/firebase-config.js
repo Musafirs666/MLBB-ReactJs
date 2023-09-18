@@ -1,8 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCkjgAxlvPpP-ZFFZ15tKznjdyQ2wpk3hQ",
+  apiKey: import.meta.env.VITE_API_KEY,
   authDomain: "mlbb-api-6d660.firebaseapp.com",
   databaseURL:
     "https://mlbb-api-6d660-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -14,4 +15,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-export default auth;
+const storage = getStorage(app);
+
+export { auth, storage };
